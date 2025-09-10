@@ -54,13 +54,15 @@ def update_registers(context):
 
         hr[0] = i                                # HR0: Rampa
         hr[1] = int(amplitude + amplitude * math.sin(i * freq))  # HR1: Senoide
-        hr[2] = random.randint(0, 250)          # HR2: Aleatório
+        hr[2] = random.randint(0, 50)          # HR2: Aleatório
         hr[5] = i % 200                           # HR5: Dente de Serra
         hr[6] = random.choice([0,1])            # HR6: Booleano
+        
+        
         hr[8] = 50 + int(20 * math.sin(i*0.05)) # HR8: Variável de processo
         medida = hr[8]
         erro = setpoint - medida
-        hr[7] = medida + int(Kp * erro)         # HR7: Saída do controlador
+        hr[7] = max(0,int(Kp * erro))         # HR7: Saída do controlador
 
         # HR11-HR15 permanecem livres
 
