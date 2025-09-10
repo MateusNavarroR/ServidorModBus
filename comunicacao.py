@@ -76,8 +76,6 @@ def menu(context):
         print("(1) - Ler registradores")
         print("(2) - Modificar um registrador")
         print("(3) - Resetar registradores")
-        print("(4) - Configurar senoide (HR3=Amplitude, HR4=Freq)")
-        print("(5) - Configurar PID (HR9=Setpoint, HR10=Kp)")
 
         opc = input("Digite uma opção: ")
         try:
@@ -103,16 +101,6 @@ def menu(context):
             elif opc == '3':
                 context[slave_id].setValues(3, 0, [0]*16)
                 print("Registradores resetados.")
-            elif opc == '4':
-                amp = int(input("Amplitude da senoide: "))
-                freq = float(input("Frequência da senoide: "))
-                context[slave_id].setValues(3, 3, [amp])
-                context[slave_id].setValues(3, 4, [freq])
-            elif opc == '5':
-                sp = int(input("Setpoint do PID: "))
-                kp = float(input("Kp do PID: "))
-                context[slave_id].setValues(3, 9, [sp])
-                context[slave_id].setValues(3, 10, [kp])
             else:
                 print("Opção inválida")
         except Exception as e:
