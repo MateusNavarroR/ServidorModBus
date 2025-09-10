@@ -12,7 +12,10 @@ import socket
 PORT = 1502
 
 #pip install pymodbus==2.5.3
+#pip install pyinstaller
 #sudo lsof -i :1502
+#pyinstaller --onefile comunicacao.py
+
 
 def free_port(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
