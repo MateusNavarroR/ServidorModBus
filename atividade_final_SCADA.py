@@ -13,6 +13,7 @@ import socket
 
 PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 1502)
 
+#pip install flask
 #pip install pymodbus==2.5.3
 #pip install pyinstaller
 #sudo lsof -i :1502

@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>ModWebBus</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<h2>Registradores Modbus</h2>
+<table>
+<thead>
+<tr><th>HR</th><th>Descrição</th><th>Valor</th><th>Ação</th></tr>
+</thead>
+<tbody id="regs_table">
+</tbody>
+</table>
+
+<h3>Resetar registradores</h3>
+<button onclick="resetRegs()">Resetar Todos</button>
+
+<script>
+// Descrições dos registradores
+const descricoes = [
+    "Rampa",
+    "Senoide",
+    "Aleatório",
+    "Amplitude Senoide",
+    "Freq. Senoide",
+    "Dente de Serra",
+    "Booleano",
+    "Saída PID",
+    "Variável Processo",
+    "Setpoint PID",
+    "Kp",
+    "LIVRE",
+    "LIVRE",
+    "LIVRE",
+    "LIVRE",
+    "LIVRE"
+];
+
+
+function initTable(){
+    let html = "";
+    for(let i=0;i<descricoes.length;i++){
+        html += `<tr id="row${i}">
+            <td>HR${i}</td>
+            <td>${descricoes[i]}</td>
+            <td class="valor">0</td>
+            <td>
+                <input type="number" id="val${i}" placeholder="Novo valor">
+                <button onclick="setReg(${i})">Alterar</button>
+            </td>
+        </tr>`;
+    }
+    $("#regs_table").html(html);
+}
+
+function updateRegs(){
+    $.getJSON("/registradores", function(data){
+        for(let i=0;i<data.length;i++){
+            $("#row"+i+" .valor").text(data[i]);
+        }
+    });
+}
+
+function setReg(i){
+    let val = $("#val"+i).val();
+    $.ajax({
+        url:"/set_reg",
+        type:"POST",
+        contentType:"application/json",
+        data: JSON.stringify({reg:i,val:val}),
+        success: updateRegs
+    });
+}
+
+function resetRegs(){
+    $.post("/reset_regs", {}, updateRegs);
+}
+
+// Inicialização
+initTable();
+setInterval(updateRegs, 1000); // Atualiza a cada 1s
+updateRegs();
+</script>
+</body>
+</html>
