@@ -9,7 +9,9 @@ import os
 import signal
 import socket
 
-PORT = 1502
+
+
+PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 1502)
 
 #pip install pymodbus==2.5.3
 #pip install pyinstaller
@@ -50,24 +52,19 @@ def update_registers(context):
         slave_id = 0x00
         hr = context[slave_id].getValues(3, 0, count=16)
 
-        amplitude = hr[3] if hr[3] != 0 else 50
-        freq = hr[4] if hr[4] != 0 else 0.2
-        setpoint = hr[9] if hr[9] != 0 else 100
-        Kp = hr[10] if hr[10] != 0 else 1
-
-        hr[0] = i                                # HR0: Rampa
-        hr[1] = int(amplitude + amplitude * math.sin(i * freq))  # HR1: Senoide
-        hr[2] = random.randint(0, 50)          # HR2: Aleatório
-        hr[5] = i % 200                           # HR5: Dente de Serra
-        hr[6] = random.choice([0,1])            # HR6: Booleano
+        freq = hr[1] if hr[1] != 0 else 60
+        hr[1] = freq
+        hr[0] = random.choice([0,1]) # HR0: Estado do Motor                                
+        hr[2] = int(freq*0.3333)  # HR1: Sensor de Vazão -> Vazão = k*freq + b, sendo b zero temos uma função linear
+        hr[3] = int(50 + hr[2] * 0.5 + 5 * math.sin(i*0.1))          # HR3: Pressão que é calculada com o valor da vazão e com uma senoide
         
-        
-        hr[8] = 50 + int(20 * math.sin(i*0.05)) # HR8: Variável de processo
-        medida = hr[8]
-        erro = setpoint - medida
-        hr[7] = max(0,int(Kp * erro))         # HR7: Saída do controlador
 
-        # HR11-HR15 permanecem livres
+
+        # HR0 -> Estado do Motor
+        # HR1 -> Frequência
+        # HR2 -> Vazão
+        # HR3 -> Pressão
+
 
         context[slave_id].setValues(3, 0, hr)
         i += 1
@@ -77,7 +74,7 @@ def menu(context):
     while True:
         print("MENU MODBUS")
         print("(1) - Ler registradores")
-        print("(2) - Modificar um registrador")
+        print("(2) - Atualizar o valor de frequência")
         print("(3) - Resetar registradores")
 
         opc = input("Digite uma opção: ")
@@ -86,21 +83,15 @@ def menu(context):
             hr = context[slave_id].getValues(3, 0, count=16)
             if opc == '1':
                 slave_id = 0x00
-                hr = context[slave_id].getValues(3, 0, count=16)
+                hr = context[slave_id].getValues(3, 0, count=4)
                 nomes = [
-                    "Rampa", "Senoide", "Aleatório", "Amplitude Senoide", "Freq. Senoide",
-                    "Dente de Serra", "Booleano", "Saída PID", "Variável Processo",
-                    "Setpoint PID", "Kp", "LIVRE", "LIVRE", "LIVRE", "LIVRE", "LIVRE"
+                    "Motor", "Frequência", "Vazão", "Pressão"
                 ]
-                if len(hr) < 16:
-                    hr += [0] * (16 - len(hr))
-
                 for i, val in enumerate(hr):
                     print(f"HR{i:02} ({nomes[i]}): {val}")
             elif opc == '2':
-                reg = int(input("Escolha o registrador (0-15): "))
-                val = int(input(f"Novo valor para HR{reg}: "))
-                context[slave_id].setValues(3, reg, [val])
+                val = int(input(f"Novo valor para HR1: "))
+                context[slave_id].setValues(3, 1, [val])
             elif opc == '3':
                 context[slave_id].setValues(3, 0, [0]*16)
                 print("Registradores resetados.")
