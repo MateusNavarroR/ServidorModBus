@@ -3,5 +3,5 @@ Simulador de MODBUS feito em Python pelo discente Mateus Navarro Ribeiro de Lima
 
 
 ## Próximas implementações
-1 - O usuário pode escolher a porta na qual quer estabelecer a conexão MODBUS
-2 - Implementação em Web para melhorar a visualização e manipulação dos registradores
+1 - Melhorar a estilização da pagina Web
+2 - Melhorar os exemplos dos registradores para a atividade
