@@ -8,8 +8,8 @@ import random
 import os
 import signal
 import socket
-
-
+import subprocess
+import platform
 
 PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 1502)
 
@@ -21,23 +21,49 @@ PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 15
 
 
 def free_port(port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.bind(('', port))
-        s.close()
-        return
-    except OSError:
-        print(f"Porta {port} ocupada, tentando liberar...")
-        try:
-            import subprocess
-            result = subprocess.run(['lsof', '-t', f'-i:{port}'], capture_output=True, text=True)
-            pids = result.stdout.split()
+    if platform.system() == "Windows":
+        result = subprocess.run(['netstat', '-ano'], capture_output=True, text=True)
+        lines = result.stdout.splitlines()
+        pids = set()
+        for line in lines:
+            if f":{port} " in line:
+                parts = line.split()
+                if len(parts) >= 5:
+                    pids.add(parts[-1])
+        if not pids:
+            print("Nenhum processo usando a porta.")
+            return
+        print(f"Processos usando a porta: {', '.join(pids)}")
+        confirm = input("Deseja finalizar esses processos? (s/n): ")
+        if confirm.lower() == 's':
             for pid in pids:
-                print(f"Morrendo processo {pid}...")
-                os.kill(int(pid), signal.SIGKILL)
-            print(f"Porta {port} liberada!")
-        except Exception as e:
-            print(f"Erro ao liberar porta: {e}")
+                subprocess.run(['taskkill', '/PID', pid, '/F'])
+                print(f"Processo {pid} finalizado.")
+        else:
+            print("Nenhum processo foi finalizado.")
+    else:
+        print(f"Verificando processos na porta {port}...")
+        result = subprocess.run(['lsof', '-i', f':{port}'], capture_output=True, text=True)
+        print(result.stdout)
+        pids = set()
+        for line in result.stdout.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) >= 2:
+                pids.add(parts[1])
+        if not pids:
+            print("Nenhum processo usando a porta.")
+            return
+        print(f"Processos usando a porta: {', '.join(pids)}")
+        confirm = input("Deseja finalizar esses processos? (s/n): ")
+        if confirm.lower() == 's':
+            for pid in pids:
+                try:
+                    os.kill(int(pid), signal.SIGKILL)
+                    print(f"Processo {pid} finalizado.")
+                except Exception as e:
+                    print(f"Erro ao finalizar {pid}: {e}")
+        else:
+            print("Nenhum processo foi finalizado.")
 
 free_port(PORT)
 
