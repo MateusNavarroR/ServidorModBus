@@ -10,7 +10,7 @@ h2, h3 {
 }
 table {
     border-collapse: collapse;
-    margin: 20px 0;
+    margin: 20px auto;
     width: 90%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     background: #fff;
@@ -36,7 +36,7 @@ tr:hover {
     background: #f0f6ff;
 }
 input[type="number"] {
-    width: 70px;
+    width: 120px;
     padding: 4px;
     border-radius: 4px;
     border: 1px solid #b0c4de;
@@ -44,6 +44,7 @@ input[type="number"] {
     font-size: 1em;
 }
 button {
+    display: inline-block;
     background: #2a5298;
     color: #fff;
     border: none;

@@ -8,6 +8,8 @@
 </head>
 <body>
 <h2>Registradores Modbus</h2>
+<h3>Resetar registradores</h3>
+<button onclick="resetRegs()">Resetar Todos</button>
 <table>
 <thead>
 <tr><th>HR</th><th>Descrição</th><th>Valor</th><th>Ação</th></tr>
@@ -16,8 +18,6 @@
 </tbody>
 </table>
 
-<h3>Resetar registradores</h3>
-<button onclick="resetRegs()">Resetar Todos</button>
 
 <script>
 // Descrições dos registradores
@@ -49,7 +49,7 @@ function initTable(){
             <td>${descricoes[i]}</td>
             <td class="valor">0</td>
             <td>
-                <input type="number" id="val${i}" placeholder="Novo valor">
+                <input type="number" id="val${i}" placeholder="Novo valor" min="0">
                 <button onclick="setReg(${i})">Alterar</button>
             </td>
         </tr>`;
