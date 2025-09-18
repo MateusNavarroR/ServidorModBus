@@ -18,6 +18,9 @@ PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 15
 #sudo lsof -i :1502
 #pyinstaller --onefile comunicacao.py
 
+reset_flag = False
+global_i = 0
+
 
 def free_port(port):
     if platform.system() == "Windows":
@@ -73,35 +76,40 @@ store = ModbusSlaveContext(
 context = ModbusServerContext(slaves=store, single=True)
 
 def update_registers(context):
+    global reset_flag, global_i
     i = 0
     while True:
         slave_id = 0x00
         hr = context[slave_id].getValues(3, 0, count=16)
 
-        amplitude = hr[3] if hr[3] != 0 else 50
-        freq = hr[4] if hr[4] != 0 else 0.2
-        setpoint = hr[9] if hr[9] != 0 else 100
-        Kp = hr[10] if hr[10] != 0 else 1
+        if reset_flag:
+            hr = [0]*16
+            global_i = 0  
+            reset_flag = False
+        else:
+            amplitude = hr[3] if hr[3] != 0 else 50
+            freq = hr[4] if hr[4] != 0 else 0.2
+            setpoint = hr[9] if hr[9] != 0 else 100
+            Kp = hr[10] if hr[10] != 0 else 1
 
-        hr[0] = i                                # HR0: Rampa
-        hr[1] = int(amplitude + amplitude * math.sin(i * freq))  # HR1: Senoide
-        hr[2] = random.randint(0, 50)          # HR2: Aleatório
-        hr[5] = i % 200                           # HR5: Dente de Serra
-        hr[6] = random.choice([0,1])            # HR6: Booleano
-        
-        
-        hr[8] = 50 + int(20 * math.sin(i*0.05)) # HR8: Variável de processo
-        medida = hr[8]
-        erro = setpoint - medida
-        hr[7] = max(0,int(Kp * erro))         # HR7: Saída do controlador
+            hr[0] = global_i
+            hr[1] = int(amplitude + amplitude * math.sin(global_i * freq))
+            hr[2] = random.randint(0, 50)
+            hr[5] = global_i % 200
+            hr[6] = random.choice([0,1])
+            hr[8] = 50 + int(20 * math.sin(global_i*0.05))
+            medida = hr[8]
+            erro = setpoint - medida
+            hr[7] = max(0,int(Kp * erro))
 
         # HR11-HR15 permanecem livres
 
         context[slave_id].setValues(3, 0, hr)
-        i += 1
+        global_i += 1
         time.sleep(1)
 
 def menu(context):
+    global reset_flag
     while True:
         print("MENU MODBUS")
         print("(1) - Ler registradores")
@@ -130,7 +138,7 @@ def menu(context):
                 val = int(input(f"Novo valor para HR{reg}: "))
                 context[slave_id].setValues(3, reg, [val])
             elif opc == '3':
-                context[slave_id].setValues(3, 0, [0]*16)
+                reset_flag = True
                 print("Registradores resetados.")
             else:
                 print("Opção inválida")

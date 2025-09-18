@@ -19,6 +19,9 @@ PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 15
 #sudo lsof -i :1502
 #pyinstaller --onefile comunicacao.py
 
+reset_flag = False
+global_i = 0
+
 
 def free_port(port):
     if platform.system() == "Windows":
@@ -74,16 +77,24 @@ store = ModbusSlaveContext(
 context = ModbusServerContext(slaves=store, single=True)
 
 def update_registers(context):
+    global reset_flag, global_i
     i = 0
     while True:
         slave_id = 0x00
         hr = context[slave_id].getValues(3, 0, count=16)
 
-        freq = hr[1] if hr[1] != 0 else 60
-        hr[1] = freq
-        hr[0] = random.choice([0,1]) # HR0: Estado do Motor                                
-        hr[2] = int(freq*0.3333)  # HR1: Sensor de Vazão -> Vazão = k*freq + b, sendo b zero temos uma função linear
-        hr[3] = int(50 + hr[2] * 0.5 + 5 * math.sin(i*0.1))          # HR3: Pressão que é calculada com o valor da vazão e com uma senoide
+
+
+        if reset_flag:
+            hr = [0]*16
+            global_i = 0
+            reset_flag = False
+        else:
+            freq = hr[1] if hr[1] != 0 else 60
+            hr[1] = freq
+            hr[0] = random.choice([0,1]) # HR0: Estado do Motor                                
+            hr[2] = int(freq*0.3333)  # HR1: Sensor de Vazão -> Vazão = k*freq + b, sendo b zero temos uma função linear
+            hr[3] = int(50 + hr[2] * 0.5 + 5 * math.sin(i*0.1))          # HR3: Pressão que é calculada com o valor da vazão e com uma senoide
         
 
 
@@ -94,10 +105,11 @@ def update_registers(context):
 
 
         context[slave_id].setValues(3, 0, hr)
-        i += 1
+        global_i += 1
         time.sleep(1)
 
 def menu(context):
+    global reset_flag
     while True:
         print("MENU MODBUS")
         print("(1) - Ler registradores")
@@ -120,7 +132,7 @@ def menu(context):
                 val = int(input(f"Novo valor para HR1: "))
                 context[slave_id].setValues(3, 1, [val])
             elif opc == '3':
-                context[slave_id].setValues(3, 0, [0]*16)
+                reset_flag = True
                 print("Registradores resetados.")
             else:
                 print("Opção inválida")
