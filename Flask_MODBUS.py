@@ -45,7 +45,7 @@ PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 15
 
 reset_flag = False
 global_i = 0
-
+global_i_vector = []
 # --- Função para liberar porta ---
 def free_port(port):
     if platform.system() == "Windows":

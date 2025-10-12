@@ -1,6 +1,7 @@
 from pymodbus.server.sync import StartTcpServer
 from pymodbus.datastore import ModbusSlaveContext, ModbusServerContext
 from pymodbus.datastore import ModbusSequentialDataBlock
+from flask import Flask, render_template, jsonify, request
 from threading import Thread
 import time
 import math
@@ -10,6 +11,40 @@ import signal
 import socket
 import subprocess
 import platform
+import socket, os, signal
+
+
+
+#Linux
+#pyinstaller --onefile \
+#--add-data "templates:templates" \
+#--add-data "static:static" \
+#Flask_MODBUS_AtividadeFinal.py
+
+#Windows
+# pyinstaller --onefile ^
+#--add-data "templates;templates" ^
+#--add-data "static;static" ^
+#Flask_MODBUS_AtividadeFinal.py
+
+#Garante que o Flask ache os arquivos estáticos e templates quando empacotado com PyInstaller
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+app = Flask(
+    __name__,
+    template_folder=resource_path("templates"),
+    static_folder=resource_path("static")
+)
+
+
 
 PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 1502)
 
@@ -94,7 +129,7 @@ def update_registers(context):
             hr[1] = freq
             hr[0] = random.choice([0,1]) # HR0: Estado do Motor                                
             hr[2] = int(freq*0.3333)  # HR1: Sensor de Vazão -> Vazão = k*freq + b, sendo b zero temos uma função linear
-            hr[3] = int(50 + hr[2] * 0.5 + 5 * math.sin(i*0.1))          # HR3: Pressão que é calculada com o valor da vazão e com uma senoide
+            hr[3] = int(50 + hr[2] * 0.5 + 5 * math.sin(global_i*0.1))          # HR3: Pressão que é calculada com o valor da vazão e com uma senoide
         
 
 
@@ -108,47 +143,38 @@ def update_registers(context):
         global_i += 1
         time.sleep(1)
 
-def menu(context):
+Thread(target=update_registers, args=(context,), daemon=True).start()
+
+# --- Flask Web ---
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return render_template("atividade_final.html")
+
+@app.route("/registradores")
+def get_regs():
+    hr = context[0x00].getValues(3, 0, count=16)
+    return jsonify(hr)
+
+@app.route("/set_reg", methods=["POST"])
+def set_reg():
+    data = request.json
+    reg = int(data["reg"])
+    val = int(data["val"])
+    context[0x00].setValues(3, reg, [val])
+    return jsonify(success=True)
+
+@app.route("/reset_regs", methods=["POST"])
+def reset_regs():
     global reset_flag
-    while True:
-        print("MENU MODBUS")
-        print("(1) - Ler registradores")
-        print("(2) - Atualizar o valor de frequência")
-        print("(3) - Resetar registradores")
+    reset_flag = True
+    return jsonify(success=True)
 
-        opc = input("Digite uma opção: ")
-        try:
-            slave_id = 0x00
-            hr = context[slave_id].getValues(3, 0, count=16)
-            if opc == '1':
-                slave_id = 0x00
-                hr = context[slave_id].getValues(3, 0, count=4)
-                nomes = [
-                    "Motor", "Frequência", "Vazão", "Pressão"
-                ]
-                for i, val in enumerate(hr):
-                    print(f"HR{i:02} ({nomes[i]}): {val}")
-            elif opc == '2':
-                val = int(input(f"Novo valor para HR1: "))
-                context[slave_id].setValues(3, 1, [val])
-            elif opc == '3':
-                reset_flag = True
-                print("Registradores resetados.")
-            else:
-                print("Opção inválida")
-        except Exception as e:
-            print(f"Erro: {e}")
-        print("\n")
 
-# Threads
-thread_update = Thread(target=update_registers, args=(context,))
-thread_update.daemon = True
-thread_update.start()
+# --- Executa Flask + Modbus TCP ---
+if __name__ == "__main__":
+    print(f"Servidor MODBUS TCP rodando em 0.0.0.0:{PORT}")
+    Thread(target=lambda: StartTcpServer(context, address=("0.0.0.0", PORT)), daemon=True).start()
+    app.run(host="0.0.0.0", port=5000)
 
-thread_menu = Thread(target=menu, args=(context,))
-thread_menu.daemon = True
-thread_menu.start()
-
-# Iniciar servidor MODBUS TCP
-print(f"Servidor MODBUS TCP rodando em 0.0.0.0:{PORT}")
-StartTcpServer(context, address=("0.0.0.0", PORT))

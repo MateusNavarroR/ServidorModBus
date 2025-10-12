@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ModWebBus</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h2>Registradores Modbus - Atividade Final</h2>
+<h3>Resetar registradores</h3>
+<button onclick="resetRegs()">Resetar Todos</button>
+
+<table>
+    <thead>
+        <tr><th>HR</th><th>Descrição</th><th>Valor</th></tr>
+    </thead>
+    <tbody id="regs_table"></tbody>
+</table>
+
+<!-- Caixa separada para alterar a frequência -->
+<div id="freq_control">
+    <h3>Controle de Frequência (HR1)</h3>
+    <div class="freq-box">
+        <label for="freq_value">Nova frequência (Hz):</label>
+        <input type="number" id="freq_value" placeholder="Digite o valor" min="0">
+        <button onclick="setFreq()">Atualizar Frequência</button>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-content">
+        <div class="logos">
+            <img src="{{ url_for('static', filename='logo1.jpeg') }}" alt="Logo do Laboratório 1" style="width:180px; height:auto;">
+            <img src="{{ url_for('static', filename='logo2.jpeg') }}" alt="Logo do Laboratório 2" style="width:300px; height:auto;">
+        </div>
+        <div class="info">
+            <p><strong>Autor:</strong> Mateus Navarro Ribeiro de Lima</p>
+            <p><strong>Orientador:</strong> Juan Mauricio Villanueva</p>
+            <p><strong>GitHub:</strong> <a href="https://github.com/MateusNavarroR" target="_blank">github.com/MateusNavarroR</a></p>
+        </div>
+    </div>
+</footer>
+
+
+
+
+
+
+<script>
+// Descrições dos 4 registradores usados
+const descricoes = [
+    "Estado do Motor",   // HR0
+    "Frequência",        // HR1
+    "Vazão",             // HR2
+    "Pressão"            // HR3
+];
+
+function initTable(){
+    let html = "";
+    for(let i=0; i<4; i++){
+        html += `<tr id="row${i}">
+            <td>HR${i}</td>
+            <td>${descricoes[i]}</td>
+            <td class="valor" id="val${i}">0</td>
+        </tr>`;
+    }
+    $("#regs_table").html(html);
+}
+
+function updateRegs(){
+    $.getJSON("/registradores", function(data){
+        if(!Array.isArray(data) || data.length < 4) return;
+
+        // Atualiza os valores dos registradores na tabela
+        for(let i=0; i<4; i++){
+            $("#val"+i).text(data[i]);
+        }
+
+        // Mostra o valor atual da frequência no placeholder
+        const freqInput = $("#freq_value");
+        if(data.length > 1 && !freqInput.is(":focus")){
+            freqInput.attr("placeholder", `Atual: ${data[1]} Hz`);
+        }
+    });
+}
+
+function setFreq(){
+    let val = $("#freq_value").val();
+    if(val === "" || val < 0) return alert("Informe uma frequência válida!");
+    $.ajax({
+        url:"/set_reg",
+        type:"POST",
+        contentType:"application/json",
+        data: JSON.stringify({reg:1, val:parseInt(val)}),
+        success: function(){
+            updateRegs();
+            $("#freq_value").val("");
+        }
+    });
+}
+
+function resetRegs(){
+    $.post("/reset_regs", {}, updateRegs);
+}
+
+// Inicialização
+initTable();
+setInterval(updateRegs, 1000);
+updateRegs();
+</script>
+
+
+
+
+</body>
+</html>
