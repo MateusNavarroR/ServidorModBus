@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<h2>Registradores Modbus</h2>
+<h2>Registradores Modbus - Simulador Geral</h2>
 <h3>Resetar registradores</h3>
 <button onclick="resetRegs()">Resetar Todos</button>
 <table>
@@ -18,21 +18,36 @@
 </tbody>
 </table>
 
+<footer>
+    <div class="footer-content">
+        <div class="logos">
+            <img src="{{ url_for('static', filename='logo1.jpeg') }}" alt="Logo do Laboratório 1" style="width:180px; height:auto;">
+            <img src="{{ url_for('static', filename='logo2.jpeg') }}" alt="Logo do Laboratório 2" style="width:300px; height:auto;">
+        </div>
+        <div class="info">
+            <p><strong>Autor:</strong> Mateus Navarro Ribeiro de Lima</p>
+            <p><strong>Orientador:</strong> Juan Mauricio Villanueva</p>
+            <p><strong>GitHub:</strong> <a href="https://github.com/MateusNavarroR" target="_blank">github.com/MateusNavarroR</a></p>
+        </div>
+    </div>
+</footer>
+
+
 
 <script>
 // Descrições dos registradores
 const descricoes = [
     "Rampa",
     "Senoide",
-    "Aleatório",
-    "Amplitude Senoide",
-    "Freq. Senoide",
     "Dente de Serra",
+    "Aleatório",
     "Booleano",
-    "Saída PID",
-    "Variável Processo",
-    "Setpoint PID",
-    "Kp",
+    "Amplitude Senoide",
+    "Frequência Senoide",
+    "LIVRE",
+    "LIVRE",
+    "LIVRE",
+    "LIVRE",
     "LIVRE",
     "LIVRE",
     "LIVRE",

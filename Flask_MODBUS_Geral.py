@@ -19,7 +19,6 @@ import socket, os, signal
 #sudo lsof -i :1502
 #pyinstaller --onefile comunicacao.py
 
-
 #Garante que o Flask ache os arquivos estáticos e templates quando empacotado com PyInstaller
 
 
@@ -45,7 +44,7 @@ PORT = int(input("Digite a porta para o servidor MODBUS (padrão 1502): ") or 15
 
 reset_flag = False
 global_i = 0
-global_i_vector = []
+global_i_vector = [0,0,0]
 # --- Função para liberar porta ---
 def free_port(port):
     if platform.system() == "Windows":
@@ -99,28 +98,39 @@ store = ModbusSlaveContext(hr=ModbusSequentialDataBlock(0, [0]*16))
 context = ModbusServerContext(slaves=store, single=True)
 
 def update_registers(context):
-    global reset_flag, global_i
+    global reset_flag, global_i, global_i_vector
     while True:
         slave_id = 0x00
-        hr = context[slave_id].getValues(3, 0, count=16)
 
         if reset_flag:
-            context[0x00].setValues(3, 0, [0]*16)
+            context[slave_id].setValues(3, 0, [0]*16)
             global_i = 0
+            global_i_vector = [0, 0, 0]
             reset_flag = False
-        else:            
-            hr[0] = global_i                                # HR0: Rampa
-            hr[1] = int(50 + 50 * math.sin(global_i * 0.1))  # HR1: Senoide
-            hr[2] = random.randint(0, 50)           # HR2: Aleatório
-            hr[5] = global_i % 200                          # HR5: Dente de Serra
-            hr[6] = random.choice([0,1])             # HR6: Booleano
-            hr[8] = 50 + int(20 * math.sin(global_i*0.05)) # HR8: Variável processo
-            setpoint = hr[9] if hr[9] != 0 else 100
-            Kp = hr[10] if hr[10] != 0 else 1
-            hr[7] = max(0,int(Kp * (setpoint - hr[8]))) # HR7: Saída PID
-        context[0x00].setValues(3, 0, hr)
-        global_i += 1
+            time.sleep(1)
+            continue  
+
+        hr = context[slave_id].getValues(3, 0, count=16)
+
+        freq = hr[6] if hr[6] != 0 else 20  
+        amp = hr[5] if hr[5] != 0 else 50
+
+        hr[0] = global_i_vector[0]                       # HR0: Rampa
+        hr[1] = int(amp + amp * math.sin(global_i_vector[1] * freq))  # HR1: Senoide
+        hr[2] = global_i_vector[2] % 200                 # HR2: Dente de Serra
+        hr[3] = random.randint(0, 50)                    # HR3: Aleatório
+        hr[4] = random.choice([0,1])                     # HR4: Booleano
+
+
+
+        context[slave_id].setValues(3, 0, hr)
+
+
+        for i in range(len(global_i_vector)):
+            global_i_vector[i] += 1
+
         time.sleep(1)
+
 
 Thread(target=update_registers, args=(context,), daemon=True).start()
 
@@ -129,7 +139,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("geral.html")
 
 @app.route("/registradores")
 def get_regs():
@@ -141,6 +151,16 @@ def set_reg():
     data = request.json
     reg = int(data["reg"])
     val = int(data["val"])
+    if(reg ==  0):
+        global_i_vector[0] = val
+        context[0x00].setValues(3, reg, [val])
+    elif(reg == 1):
+        global_i_vector[1] = val
+        context[0x00].setValues(3, reg, [val])
+    elif(reg == 2):
+        global_i_vector[2] = val
+        context[0x00].setValues(3, reg, [val])
+
     context[0x00].setValues(3, reg, [val])
     return jsonify(success=True)
 
